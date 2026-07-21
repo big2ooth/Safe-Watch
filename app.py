@@ -14,7 +14,7 @@ from dashboard.sidebar import show_sidebar
 from dashboard.metrics import show_header, show_metrics, fetch_stats
 from dashboard.charts import (
     show_charts, show_incident_log, show_zone_overview,
-    show_worker_scores, fetch_violations
+     fetch_violations
 )
 from dashboard.video import show_video
 
@@ -62,8 +62,7 @@ show_incident_log(violations)
 # ── Zone overview ────────────────────────────────────────────────────────────
 show_zone_overview(stats)
 
-# ── Worker scores ────────────────────────────────────────────────────────────
-show_worker_scores()
+
 
 # ── Auto refresh ─────────────────────────────────────────────────────────────
 if filters.get("auto_refresh"):

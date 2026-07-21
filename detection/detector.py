@@ -3,53 +3,14 @@ import time
 import os
 from datetime import datetime
 from ultralytics import YOLO
+from backend.database import log_violation, init_db
 
 from backend.config import (
     MODEL_PATH, VIDEO_PATH, SNAP_DIR, COOLDOWN,
     CLASS_CONF, CLASS_NAMES, VIOLATION_CLASSES, ZONES, CONF_THRESH
 )
-from backend.database import log_violation, upsert_worker, init_db
+
 from backend.api import frame_store
-
-# ─── Warning system ────────────────────────────────────────────────────────────
-PENALTY_SCORES = {
-    "No Hardhat":     -20,
-    "No Safety Vest": -10,
-}
-WARNING_COOLDOWN = 30  # seconds between warnings per worker
-
-worker_state = {}  # {track_id: {warnings, score, last_warned, penalized}}
-
-
-def get_worker_state(track_id: int) -> dict:
-    if track_id not in worker_state:
-        worker_state[track_id] = {
-            "warnings": 0,
-            "score": 100,
-            "last_warned": 0,
-            "penalized": False
-        }
-    return worker_state[track_id]
-
-
-def process_worker_violation(track_id: int, violation: str):
-    state = get_worker_state(track_id)
-    now   = time.time()
-
-    if state["penalized"]:
-        return
-    if now - state["last_warned"] < WARNING_COOLDOWN:
-        return
-
-    state["warnings"] += 1
-    state["score"]     = max(0, state["score"] + PENALTY_SCORES.get(violation, -10))
-    state["last_warned"] = now
-
-    if state["warnings"] >= 3:
-        state["penalized"] = True
-
-    upsert_worker(track_id, state["warnings"], int(state["penalized"]))
-    print(f"[WORKER #{track_id}] Warning {state['warnings']}/3 | Score: {state['score']} | {violation}")
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -66,16 +27,6 @@ def save_snapshot(frame, violation_type: str) -> str:
     cv2.imwrite(path, frame)
     return path
 
-
-def draw_worker_label(frame, track_id: int, x1: int, y1: int):
-    state     = get_worker_state(track_id)
-    warnings  = state["warnings"]
-    score     = state["score"]
-    penalized = state["penalized"]
-    color     = (0, 0, 255) if penalized else (0, 165, 255) if warnings > 0 else (0, 200, 0)
-    label     = f"W#{track_id} | {score}pts | {warnings}/3"
-    cv2.putText(frame, label, (x1, max(y1 - 10, 20)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
 
 def draw_violation_banner(frame, violations: list):
@@ -136,7 +87,7 @@ def run_detector():
             for box in detections:
                 cls_id     = int(box.cls[0])
                 confidence = float(box.conf[0])
-                track_id   = int(box.id[0]) if box.id is not None else -1
+                
 
                 if confidence < CLASS_CONF.get(cls_id, CONF_THRESH):
                     continue
@@ -151,9 +102,7 @@ def run_detector():
                 cv2.putText(frame, f"{label} {confidence:.2f}",
                             (x1, y1 - 28), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-                if track_id != -1:
-                    draw_worker_label(frame, track_id, x1, y1)
-
+                
                 if is_violation:
                     violation_name = VIOLATION_CLASSES[cls_id]
                     zone = get_zone(x_center, frame.shape[1])
@@ -161,12 +110,12 @@ def run_detector():
 
                     if now - last_logged.get(violation_name, 0) > COOLDOWN:
                         snap = save_snapshot(frame, violation_name)
+                        print("about to log violation")
                         log_violation(zone, violation_name, confidence, snap)
+                        print("logged")
                         last_logged[violation_name] = now
                         print(f"[VIOLATION] {violation_name} | Zone: {zone} | Conf: {confidence:.2f}")
 
-                    if track_id != -1:
-                        process_worker_violation(track_id, violation_name)
 
                     violations_this_frame.append(violation_name)
 

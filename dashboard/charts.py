@@ -20,12 +20,6 @@ def fetch_violations(limit: int = 50, zone: str = None, violation: str = None) -
         return []
 
 
-def fetch_workers() -> list:
-    try:
-        r = requests.get(f"{API_BASE}/workers", timeout=3)
-        return r.json()
-    except:
-        return []
 
 
 def show_charts(stats: dict):
@@ -147,30 +141,3 @@ def show_zone_overview(stats: dict):
             </div>""", unsafe_allow_html=True)
 
 
-def show_worker_scores():
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='section-header'>Worker Compliance Scores</div>", unsafe_allow_html=True)
-
-    workers = fetch_workers()
-
-    if not workers:
-        st.markdown('<div class="empty-state">No workers tracked yet</div>', unsafe_allow_html=True)
-        return
-
-    for w in workers:
-        track_id  = w["track_id"]
-        warnings  = w["warnings"]
-        penalized = w["penalized"]
-        score     = max(0, 100 - (warnings * 15))
-
-        color  = "#D93B3B" if penalized else "#E0B23D" if warnings > 0 else "#2D8A4E"
-        status = "🔴 PENALIZED" if penalized else f"⚠ {warnings}/3 Warnings" if warnings > 0 else "✓ Compliant"
-
-        st.markdown(f"""
-        <div class="worker-card">
-            <div>
-                <div class="worker-id">Worker #{track_id}</div>
-                <div style="font-size:11px;color:{color};font-weight:600;margin-top:2px">{status}</div>
-            </div>
-            <div class="worker-score" style="color:{color}">{score}</div>
-        </div>""", unsafe_allow_html=True)

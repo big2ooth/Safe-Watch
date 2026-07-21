@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from backend.database import (
     init_db, get_violations, get_recent_violations,
     get_stats, get_zones, acknowledge_violation,
-    clear_violations, get_all_workers
+    clear_violations
 )
 
 # ─── Shared frame store ────────────────────────────────────────────────────────
@@ -118,10 +118,7 @@ def get_zones_route():
     return get_zones()
 
 
-# ─── Workers ───────────────────────────────────────────────────────────────────
-@app.get("/workers")
-def get_workers_route():
-    return get_all_workers()
+
 
 
 # ─── Run ───────────────────────────────────────────────────────────────────────
