@@ -25,7 +25,7 @@ CLASS_CONF = {
     7: 0.40,   # Safety Vest
 }
 
-ZONES = ["Entry Gate", "Scaffolding Area", "Material Yard", "Crane Zone", "Office Block"]
+ZONES = ["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5"]
 
 VIOLATION_CLASSES = {
     2: "No Hardhat",

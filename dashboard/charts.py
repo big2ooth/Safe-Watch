@@ -76,46 +76,101 @@ def show_charts(stats: dict):
 def show_incident_log(violations: list):
     alert_col, log_col = st.columns([1, 2])
 
+    # ─────────────────────────────────────────────
+    # Active Alerts
+    # ─────────────────────────────────────────────
     with alert_col:
-        st.markdown("<div class='section-header'>Active Alerts</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-header'>Active Alerts</div>",
+            unsafe_allow_html=True,
+        )
+
         unacked = [v for v in violations if not v.get("acknowledged")][:6]
 
         if not unacked:
-            st.markdown("<div style='color:#2D8A4E;font-size:13px;padding:16px 0;font-weight:600'>✓ No active violations</div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='color:#2D8A4E;font-size:13px;padding:16px 0;font-weight:600'>✓ No active violations</div>",
+                unsafe_allow_html=True,
+            )
 
         for v in unacked:
             ts = datetime.fromisoformat(v["timestamp"])
             mins_ago = int((datetime.now() - ts).total_seconds() / 60)
+
             is_critical = "Hardhat" in v["violation"]
             badge = "badge-critical" if is_critical else "badge-warning"
             severity = "CRITICAL" if is_critical else "WARNING"
             border_color = "#D93B3B" if is_critical else "#E0B23D"
-            st.markdown(f"""
-            <div class="violation-card" style="border-left:4px solid {border_color}">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                    <span class="alert-badge {badge}">{severity}</span>
-                    <span style="font-size:11px;color:#A89A8E">{mins_ago}m ago</span>
-                </div>
-                <div style="font-size:13px;font-weight:600;color:#1C1917;margin-bottom:2px">{v['violation']}</div>
-                <div style="font-size:12px;color:#6B5F57">{v['zone']} · Conf: {v['confidence']:.0%}</div>
-            </div>""", unsafe_allow_html=True)
 
+            st.markdown(
+                f"""
+                <div class="violation-card" style="border-left:4px solid {border_color}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                        <span class="alert-badge {badge}">{severity}</span>
+                        <span style="font-size:11px;color:#A89A8E">{mins_ago}m ago</span>
+                    </div>
+                    <div style="font-size:13px;font-weight:600;color:#1C1917;margin-bottom:2px">
+                        {v['violation']}
+                    </div>
+                    <div style="font-size:12px;color:#6B5F57">
+                        {v['zone']} · Conf: {v['confidence']:.0%}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    # ─────────────────────────────────────────────
+    # Incident Log
+    # ─────────────────────────────────────────────
     with log_col:
-        st.markdown("<div class='section-header'>Incident Log</div>", unsafe_allow_html=True)
-        if violations:
-            df = pd.DataFrame(violations)
-            df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.strftime("%H:%M:%S")
-            df["confidence"] = df["confidence"].apply(lambda x: f"{x:.0%}")
-            df["status"]     = df["acknowledged"].apply(lambda x: "✓ Acked" if x else "⚠ Open")
-            df["severity"]   = df["violation"].apply(lambda x: "CRITICAL" if "Hardhat" in x else "WARNING")
-            display_df = df[["timestamp", "zone", "violation", "confidence", "severity", "status"]]
-            display_df.columns = ["Time", "Zone", "Violation", "Conf", "Severity", "Status"]
-            st.dataframe(display_df, use_container_width=True, height=300, hide_index=True,
-                         column_config={
-                             "Severity": st.column_config.TextColumn(width="small"),
-                             "Conf":     st.column_config.TextColumn(width="small"),
-                             "Time":     st.column_config.TextColumn(width="small"),
-                         })
+        st.markdown(
+            "<div class='section-header'>Incident Log</div>",
+            unsafe_allow_html=True,
+        )
+
+        if not violations:
+            st.markdown(
+                '<div class="empty-state">No violations logged yet</div>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        header = st.columns([1.3, 1.4, 2.5, 1, 1.2, 1])
+
+        header[0].markdown("**Time**")
+        header[1].markdown("**Zone**")
+        header[2].markdown("**Violation**")
+        header[3].markdown("**Conf**")
+        header[4].markdown("**Severity**")
+        header[5].markdown("**Evidence**")
+
+        for v in violations:
+
+            cols = st.columns([1.3, 1.4, 2.5, 1, 1.2, 1])
+
+            cols[0].write(pd.to_datetime(v["timestamp"]).strftime("%H:%M:%S"))
+            cols[1].write(v["zone"])
+            cols[2].write(v["violation"])
+            cols[3].write(f"{v['confidence']:.0%}")
+            cols[4].write(
+                "CRITICAL" if "Hardhat" in v["violation"] else "WARNING"
+            )
+
+            if cols[5].button("View", key=f"snap_{v['id']}"):
+                if v.get("snapshot"):
+                    filename = v["snapshot"].split("/")[-1]
+                    st.session_state.snapshot = (
+                        f"{API_BASE}/snapshots/{filename}"
+                    )
+
+        if "snapshot" in st.session_state:
+            st.markdown("---")
+            st.subheader("Violation Snapshot")
+            st.image(
+                st.session_state.snapshot,
+                use_container_width=True,
+            )
         else:
             st.markdown('<div class="empty-state">No violations logged yet</div>', unsafe_allow_html=True)
 
@@ -124,7 +179,7 @@ def show_zone_overview(stats: dict):
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-header'>Zone Risk Overview</div>", unsafe_allow_html=True)
 
-    all_zones = ["Entry Gate", "Scaffolding Area", "Material Yard", "Crane Zone", "Office Block"]
+    all_zones = ["Zone 1", "Zone 2", "Zone 3", "Zone 4", "Zone 5"]
     zone_data = {z["zone"]: z["count"] for z in stats.get("by_zone", [])} if stats else {}
 
     zone_cols = st.columns(len(all_zones))
