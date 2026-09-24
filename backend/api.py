@@ -5,10 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from backend.database import (
     init_db, get_violations, get_recent_violations,
     get_stats, get_zones, acknowledge_violation,
-    clear_violations, get_all_workers
+    clear_violations
 )
 
 # ─── Shared frame store ────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ async def lifespan(app):
     yield
 
 app = FastAPI(title="SafeWatch API", version="2.0", lifespan=lifespan)
+app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,10 +120,7 @@ def get_zones_route():
     return get_zones()
 
 
-# ─── Workers ───────────────────────────────────────────────────────────────────
-@app.get("/workers")
-def get_workers_route():
-    return get_all_workers()
+
 
 
 # ─── Run ───────────────────────────────────────────────────────────────────────

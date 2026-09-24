@@ -8,7 +8,7 @@ def show_header(api_online: bool, stats: dict):
     if not api_online:
         status_label, status_color = "API OFFLINE", "#E0B23D"
     elif stats and stats.get("unacknowledged", 0) > 0:
-        status_label, status_color = "VIOLATIONS DETECTED", "#FFFFFF"
+        status_label, status_color = "DETECTING VIOLATIONS", "#FFFFFF"
     else:
         status_label, status_color = "ALL CLEAR", "#FFFFFF"
 

@@ -54,10 +54,7 @@ def load_styles():
         .violation-card { background: #FFFFFF; border: 1px solid #E8DFD8; border-radius: 4px; padding: 12px 14px; margin-bottom: 8px; }
         .role-badge { display: inline-block; padding: 2px 8px; background: #7A1B26; color: #FFFFFF; border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; font-family: 'JetBrains Mono', monospace; }
 
-        /* ── Worker table ── */
-        .worker-card { background: #FFFFFF; border: 1px solid #E8DFD8; border-radius: 4px; padding: 12px 16px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
-        .worker-id { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: #1C1917; }
-        .worker-score { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; }
+        
 
         /* ── Login ── */
         .login-brand { font-family: 'Barlow Condensed', sans-serif; font-size: 40px; font-weight: 800; color: #FFFFFF; text-transform: uppercase; letter-spacing: 0.02em; text-align: center; margin-bottom: 6px; }

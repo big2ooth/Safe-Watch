@@ -1,10 +1,14 @@
 import sqlite3
 from datetime import datetime
 from backend.config import DB_PATH
+from pathlib import Path
 
 
 # ─── Connection ────────────────────────────────────────────────────────────────
 def get_conn():
+    print("DB_PATH:", DB_PATH)
+    print("Resolved:", Path(DB_PATH).resolve())
+
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
@@ -34,15 +38,6 @@ def init_db():
             password  TEXT NOT NULL,
             role      TEXT DEFAULT 'supervisor',
             full_name TEXT
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS workers (
-            track_id   INTEGER PRIMARY KEY,
-            first_seen TEXT,
-            warnings   INTEGER DEFAULT 0,
-            penalized  INTEGER DEFAULT 0
         )
     """)
 
@@ -171,27 +166,4 @@ def seed_users(users: list):
     conn.close()
 
 
-# ─── Workers ───────────────────────────────────────────────────────────────────
-def get_worker(track_id: int):
-    conn = get_conn()
-    row = conn.execute("SELECT * FROM workers WHERE track_id = ?", (track_id,)).fetchone()
-    conn.close()
-    return dict(row) if row else None
 
-
-def upsert_worker(track_id: int, warnings: int, penalized: int):
-    conn = get_conn()
-    conn.execute("""
-        INSERT INTO workers (track_id, first_seen, warnings, penalized)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(track_id) DO UPDATE SET warnings = ?, penalized = ?
-    """, (track_id, datetime.now().isoformat(), warnings, penalized, warnings, penalized))
-    conn.commit()
-    conn.close()
-
-
-def get_all_workers():
-    conn = get_conn()
-    rows = conn.execute("SELECT * FROM workers ORDER BY warnings DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
